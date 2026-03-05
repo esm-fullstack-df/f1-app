@@ -1,5 +1,5 @@
 import sqlite3
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 import pandas as pd
 from pydantic import create_model, Field, BaseModel
@@ -38,6 +38,8 @@ def autogen_models(db: str = 'data.db') -> Dict[str, BaseModel]:
             k: (type_map[str(v)], Field())
             for k, v in df.dtypes.to_dict().items()
         }
+        if 'image' in types:
+            types['image'] = Optional[str]
         table_model = create_model(
             f'{"".join(table.replace("_", " ").title().split())}Model',
             **types,

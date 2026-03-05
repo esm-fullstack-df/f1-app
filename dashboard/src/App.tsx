@@ -1,4 +1,4 @@
-import { Admin, Resource, ListGuesser, ShowGuesser } from "react-admin";
+import { Admin, Resource, ListGuesser, ShowGuesser, bwLightTheme, bwDarkTheme } from "react-admin";
 
 import PersonIcon from "@mui/icons-material/Person";
 import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
@@ -17,7 +17,9 @@ import { authProvider } from "./authProvider";
 import { dataProvider } from "./dataProvider";
 
 import { RaceList, RaceShow } from "./pages/races";
-import { DriverList, DriverShow } from "./pages/drivers";
+import { DriverList, DriverShow, DriverEdit, DriverCreate } from "./pages/drivers";
+import { CircuitList, CircuitShow } from "./pages/circuits";
+import { ConstructorList, ConstructorShow } from "./pages/constructors";
 
 export const App = () => (
   <Admin
@@ -25,6 +27,8 @@ export const App = () => (
     dashboard={Dashboard}
     dataProvider={dataProvider}
     authProvider={authProvider}
+    theme={bwLightTheme}
+    darkTheme={bwDarkTheme}
   >
     <Resource
       icon={EmojiFlagsIcon}
@@ -37,6 +41,8 @@ export const App = () => (
       name="drivers"
       list={DriverList}
       show={DriverShow}
+      edit={DriverEdit}
+      create={DriverCreate}
     />
     <Resource
       icon={Filter1Icon}
@@ -47,8 +53,8 @@ export const App = () => (
     <Resource
       icon={RouteIcon}
       name="circuits"
-      list={ListGuesser}
-      show={ShowGuesser}
+      list={CircuitList}
+      show={CircuitShow}
     />
     <Resource
       icon={EmojiEventsIcon}
@@ -65,8 +71,8 @@ export const App = () => (
     <Resource
       icon={DirectionsCarIcon}
       name="constructors"
-      list={ListGuesser}
-      show={ShowGuesser}
+      list={ConstructorList}
+      show={ConstructorShow}
     />
     <Resource
       icon={FormatListNumberedIcon}

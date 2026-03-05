@@ -95,3 +95,75 @@ def get_route_id_function(table: str, table_model: BaseModel) -> Callable:
             )
 
     return route_id_function
+
+
+def get_next_id_value(table: str, db: DB) -> int | None:
+    id_col = get_id_column_name(table)
+    try:
+        with db.get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(f'SELECT MAX({id_col})+1 FROM {table};')
+            item = cur.fetchone()
+        if item:
+            return int(item[0])
+    except:
+        return None
+
+def get_insert_function(table: str, table_model: BaseModel) -> Callable:
+    def insert_record(item: table_model, db: DB = Depends(get_db)):
+        try:
+            new_id = get_next_id_value(table, db)
+            item.id = new_id
+            with db.get_connection() as conn:
+                keys = ','.join([k for k,v in item])
+                placeholders = ','.join(list('?'*len(item.model_fields)))
+                values = tuple([v for k,v in item])
+                conn.execute(f'INSERT INTO {table} ({keys}) VALUES ({placeholders})', values)
+                conn.commit()
+                return item
+        except Exception as e:
+            print(e)
+            raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR ,
+                    detail=f'Error inserting new row into {table} table!'
+                ) from e
+    return insert_record
+
+def get_update_function(table: str, table_model: BaseModel) -> Callable:
+    def update_record(item: table_model, db: DB = Depends(get_db)):
+        try:
+            id_col = get_id_column_name(table)
+            id_val = getattr(item, id_col)
+            with db.get_connection() as conn:
+                placeholders = ', '.join([f'{k} = ?' for k, v in item if k != id_col])
+                values_list = [v for k, v in item if k != id_col]
+                print(placeholders)
+                print(values_list)
+                values_tuple = tuple(values_list + [id_val])
+                conn.execute(f'UPDATE {table} SET {placeholders} WHERE {id_col} = ?', values_tuple)
+                conn.commit()
+                return item
+        except Exception as e:
+            print(e)
+            raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR ,
+                    detail=f'Error updating row with {id_col} = {id_val} in {table} table!'
+                ) from e
+    return update_record
+
+def get_delete_function(table: str, table_model: BaseModel, get_record_func: Callable) -> Callable:
+    def delete_record(id: int, db: DB = Depends(get_db)):
+        try:
+            id_col = get_id_column_name(table)
+            item = get_record_func(id, db)
+            with db.get_connection() as conn:
+                conn.execute(f'DELETE FROM {table} WHERE {id_col} = ?', tuple([id]))
+                conn.commit()
+                return item
+        except Exception as e:
+            print(e)
+            raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR ,
+                    detail=f'Error deleting row with {id_col} = {id} in {table} table!'
+                ) from e
+    return delete_record

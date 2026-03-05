@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 from esm_fullstack_challenge import __version__
@@ -29,7 +30,7 @@ def root():
 def ping():
     return {"ping": "pong"}
 
-
+app.mount("/images", StaticFiles(directory="esm_fullstack_challenge/static/images"), name="images")
 app.include_router(basic_router, prefix='', tags=['Basic'])
 app.include_router(drivers_router, prefix='/drivers', tags=['Drivers'])
 app.include_router(races_router, prefix='/races', tags=['Races'])
