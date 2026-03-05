@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 import sqlite3
 from glob import iglob
-from os import environ, path
+from os import environ, path, makedirs
 from tempfile import TemporaryDirectory
+import requests
+from time import sleep
 
 import kagglehub
 import pandas as pd
@@ -42,6 +44,65 @@ TABLE_ID_MAP = {
     },
 }
 
+def get_request_with_retries(endpoint, headers):
+    max_retries = 3
+    i =  0
+    while i < max_retries:
+        i += 1 
+        resp = requests.get(endpoint, headers=headers)
+        if resp.ok:
+            return resp
+        elif resp.status_code == 429: # rate limiting
+            retry_after = resp.headers.get("Retry-After")
+            if retry_after:
+                sleep_secs = int(retry_after)
+            else:
+                sleep_secs = pow(2,i)*1.5
+            print(f"sleeping {sleep_secs} seconds, rate limited")
+            sleep(sleep_secs)
+        else:
+            resp.raise_for_status()
+
+def download_wiki_images(table: str, id_to_url: dict):
+    headers={'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36'}
+    path_root = "./esm_fullstack_challenge/static/images"
+    makedirs(path_root, exist_ok=True)
+    id_to_filename = {}
+    for id, url in id_to_url.items():
+        if table == "circuits" and int(id) % 2 != 0:
+            continue
+        if table == "constructors" and int(id) % 5 != 0:
+            continue
+        if table == "drivers" and int(id) % 10 != 0:
+            continue
+        try:
+            title = url.split('/')[-1]
+            api_endpoint = 'https://en.wikipedia.org/w/api.php?action=query&redirects&prop=pageimages&format=json&formatversion=2&piprop=thumbnail&pithumbsize=500&titles='
+            resp = get_request_with_retries(api_endpoint + title, headers=headers)
+            data = resp.json()
+            sleep(0.25)
+            if 'thumbnail' not in data['query']['pages'][0]:
+                print('no image found, skipping')
+                continue
+            image = data['query']['pages'][0]['thumbnail']['source']
+            suffix = image.split('.')[-1]
+            print(f"found image url: {image}")
+            filename = f"{table}_{id}.{suffix}"
+            destination = f"{path_root}/{filename}"
+            if path.exists(destination):
+                print(f"skipping existing file: {filename}")
+                id_to_filename[id] = filename
+                continue
+            else:
+                with open(destination, 'wb') as file:
+                    resp2 = get_request_with_retries(image, headers=headers)
+                    file.write(resp2.content)
+                    id_to_filename[id] = filename
+        except Exception as e:
+            print(e)
+            pass
+        sleep(1)
+    return id_to_filename
 
 def download_data():
     conn = sqlite3.connect("data.db")
@@ -63,8 +124,16 @@ def download_data():
                 for col in df.columns
             ]
             print(table_name)
-            df.to_sql(table_name, conn, if_exists="replace", index=False)
 
+            if table_name in ["circuits", "constructors", "drivers"]:
+                id_to_url = {}
+                for df_idx, df_row in df.iterrows():
+                    id_to_url[df_row["id"]] = df_row["url"]
+                id_to_filename = download_wiki_images(table_name, id_to_url)
+                if id_to_filename:
+                    df["image"] = df.apply(lambda row: id_to_filename[row["id"]] if row["id"] in id_to_filename else None, axis=1)
+
+            df.to_sql(table_name, conn, if_exists="replace", index=False)
 
 if __name__ == "__main__":
     print("Downloading data...")
