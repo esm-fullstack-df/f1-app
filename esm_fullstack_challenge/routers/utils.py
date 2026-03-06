@@ -98,6 +98,7 @@ def get_route_id_function(table: str, table_model: BaseModel) -> Callable:
 
 
 def get_next_id_value(table: str, db: DB) -> int | None:
+    """Gets next available id (max+1) in column. Used when inserting a new record."""
     id_col = get_id_column_name(table)
     try:
         with db.get_connection() as conn:
@@ -110,6 +111,7 @@ def get_next_id_value(table: str, db: DB) -> int | None:
         return None
 
 def get_insert_function(table: str, table_model: BaseModel) -> Callable:
+    """Return function that dynamically generates insert query based on table name and model."""
     def insert_record(item: table_model, db: DB = Depends(get_db)):
         try:
             new_id = get_next_id_value(table, db)
@@ -130,6 +132,7 @@ def get_insert_function(table: str, table_model: BaseModel) -> Callable:
     return insert_record
 
 def get_update_function(table: str, table_model: BaseModel) -> Callable:
+    """Return function that dynamically generates update query based on table name and model."""
     def update_record(item: table_model, db: DB = Depends(get_db)):
         try:
             id_col = get_id_column_name(table)
@@ -152,6 +155,7 @@ def get_update_function(table: str, table_model: BaseModel) -> Callable:
     return update_record
 
 def get_delete_function(table: str, table_model: BaseModel, get_record_func: Callable) -> Callable:
+    """Return function that dynamically generates delete query based on table name and model."""
     def delete_record(id: int, db: DB = Depends(get_db)):
         try:
             id_col = get_id_column_name(table)

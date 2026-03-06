@@ -30,6 +30,7 @@ def root():
 def ping():
     return {"ping": "pong"}
 
+# mount directory of images at /images so they can be served by the API
 app.mount("/images", StaticFiles(directory="esm_fullstack_challenge/static/images"), name="images")
 app.include_router(basic_router, prefix='', tags=['Basic'])
 app.include_router(drivers_router, prefix='/drivers', tags=['Drivers'])

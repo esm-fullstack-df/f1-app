@@ -77,6 +77,7 @@ export const DriverShow = () => (
   </Show>
 );
 
+// edit form, make id field readonly for clarity
 export const DriverEdit = () => (
   <Edit>
     <SimpleForm>
@@ -94,6 +95,7 @@ export const DriverEdit = () => (
   </Edit>
 );
 
+// create form with client-side validation on required fields
 export const DriverCreate = () => (
   <Create>
     <SimpleForm>

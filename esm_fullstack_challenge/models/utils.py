@@ -39,7 +39,7 @@ def autogen_models(db: str = 'data.db') -> Dict[str, BaseModel]:
             for k, v in df.dtypes.to_dict().items()
         }
         if 'image' in types:
-            types['image'] = Optional[str]
+            types['image'] = Optional[str] # make image field optional to handle nulls (records with no image filename)
         table_model = create_model(
             f'{"".join(table.replace("_", " ").title().split())}Model',
             **types,

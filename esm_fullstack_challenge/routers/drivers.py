@@ -26,20 +26,21 @@ drivers_router.add_api_route(
     methods=["GET"], response_model=List[table_model],
 )
 
+# new driver create route on POST
 create_driver = get_insert_function('drivers', table_model)
 drivers_router.add_api_route(
     '', create_driver,
     methods=["POST"], response_model=table_model
 )
 
-
+# new driver update route on PUT with id
 update_driver = get_update_function('drivers', table_model)
 drivers_router.add_api_route(
     '/{id}', update_driver,
     methods=["PUT"], response_model=table_model
 )
 
-
+# new driver delete route on DELETE with id
 delete_driver = get_delete_function('drivers', table_model, get_driver)
 drivers_router.add_api_route(
     '/{id}', delete_driver,

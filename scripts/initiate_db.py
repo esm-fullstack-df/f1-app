@@ -45,6 +45,7 @@ TABLE_ID_MAP = {
 }
 
 def get_request_with_retries(endpoint, headers):
+    """Function to make GET calls via requests library and handle rate limiting retry logic."""
     max_retries = 3
     i =  0
     while i < max_retries:
@@ -64,36 +65,48 @@ def get_request_with_retries(endpoint, headers):
             resp.raise_for_status()
 
 def download_wiki_images(table: str, id_to_url: dict):
+    """Function to look up an image from wikipedia, download to static/images dir, and return mapping of record ids to filenames for DB insertion."""
     headers={'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36'}
     path_root = "./esm_fullstack_challenge/static/images"
     makedirs(path_root, exist_ok=True)
     id_to_filename = {}
     for id, url in id_to_url.items():
-        if table == "circuits" and int(id) % 2 != 0:
+        # rate limiting slowed image download progress substantially
+        # quick logic for each table type to cut down on number of images we try to retrieve
+        if table == "circuits" and int(id) % 2 != 0: # skip 50% of circuits
             continue
-        if table == "constructors" and int(id) % 5 != 0:
+        if table == "constructors" and int(id) % 5 != 0: # skip 80% of constructors
             continue
-        if table == "drivers" and int(id) % 10 != 0:
+        if table == "drivers" and int(id) % 10 != 0: # skip 90% of drivers
             continue
+
         try:
             title = url.split('/')[-1]
+            # API returns JSON object describing images on a Wikipedia page, by Title
             api_endpoint = 'https://en.wikipedia.org/w/api.php?action=query&redirects&prop=pageimages&format=json&formatversion=2&piprop=thumbnail&pithumbsize=500&titles='
             resp = get_request_with_retries(api_endpoint + title, headers=headers)
             data = resp.json()
             sleep(0.25)
+
+            # continue loop if no image found
             if 'thumbnail' not in data['query']['pages'][0]:
                 print('no image found, skipping')
                 continue
             image = data['query']['pages'][0]['thumbnail']['source']
             suffix = image.split('.')[-1]
             print(f"found image url: {image}")
+
+            # construct filename (stored in DB) and local path
             filename = f"{table}_{id}.{suffix}"
             destination = f"{path_root}/{filename}"
+
+            # skip any files we already have (in case we rerun init-db)
             if path.exists(destination):
                 print(f"skipping existing file: {filename}")
                 id_to_filename[id] = filename
                 continue
             else:
+                # save to file
                 with open(destination, 'wb') as file:
                     resp2 = get_request_with_retries(image, headers=headers)
                     file.write(resp2.content)
@@ -125,11 +138,14 @@ def download_data():
             ]
             print(table_name)
 
+            # added logic to download Wikipedia images for three of the data types
             if table_name in ["circuits", "constructors", "drivers"]:
                 id_to_url = {}
                 for df_idx, df_row in df.iterrows():
                     id_to_url[df_row["id"]] = df_row["url"]
                 id_to_filename = download_wiki_images(table_name, id_to_url)
+
+                # given a dict of "id" -> image filename, merge filenames into new "image" col in dataframe before writing to DB
                 if id_to_filename:
                     df["image"] = df.apply(lambda row: id_to_filename[row["id"]] if row["id"] in id_to_filename else None, axis=1)
 

@@ -2,6 +2,8 @@ import {
   FunctionField,
 } from "react-admin";
 
+// component that constructs an image link hosted by the API based on filename in "image" field of given record
+// used in Show on circuits, constructors, and drivers pages
 export const FilenameImageField = () => (
   <FunctionField 
     render={record => 
