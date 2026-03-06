@@ -1,3 +1,18 @@
+# My Submission
+* Should all be in working order with `make run`.
+* I completed option 1 (CRUD). Drivers can be created, updated, and deleted. There is some basic client-side validation so that the edit and create forms cannot be submitted without all required fields.
+* For a second task, I did option 5. I added a feature to use the Wikipedia links in the Kaggle dataset to download images for the drivers, circuits, and constructors. Unfortunately there were a large number of records and I fought some rate limiting on the Wiki API end. So I ended up only pulling a subset of images. I added the image filename as a column on the List component for those three types, so you can Show records that have images.
+note: to save time I uploaded the new state of the `data.db` file (with image column) and the images themselves. But if you want you can rerun `make init-db` and see that part in action.
+
+Given more time I would do a number of things:
+* add tests
+* make nicer looking UI (font sizes, alignment, styles, etc.)
+* add more explicit pydantic->db mapping and model definitions
+
+*Thanks for your consideration!*
+
+---
+
 # ESM FullStack Challenge
 Challenge for ESM FullStack candidates
 
